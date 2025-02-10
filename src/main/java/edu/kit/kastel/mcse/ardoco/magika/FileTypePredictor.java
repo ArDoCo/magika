@@ -1,6 +1,9 @@
 package edu.kit.kastel.mcse.ardoco.magika;
 
-import ai.onnxruntime.*;
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,22 +23,42 @@ public class FileTypePredictor {
     private final Configuration configuration;
     private final List<String> labels;
 
+    /**
+     * Create a new predictor that uses the provided model path and configuration path.
+     *
+     * @param modelPath         the model path
+     * @param configurationPath the configuration path
+     */
     public FileTypePredictor(Path modelPath, Path configurationPath) {
         this.modelPath = modelPath;
         configuration = new Configuration(configurationPath.toString());
         labels = configuration.getTargetLabels();
     }
 
+    /**
+     * Create a new predictor that uses the provided model path.
+     *
+     * @param modelPath the model path
+     */
     public FileTypePredictor(Path modelPath) {
         this.modelPath = modelPath;
         configuration = new Configuration();
         labels = configuration.getTargetLabels();
     }
 
+    /**
+     * Create a new predictor that uses the default model path and configuration path.
+     */
     public FileTypePredictor() {
         this(defaultPath);
     }
 
+    /**
+     * Predict the file type of the provided file.
+     *
+     * @param inputFilePath the input file
+     * @return the predicted file type
+     */
     public Prediction predictFileType(Path inputFilePath) {
         if (!Files.exists(modelPath)) {
             logger.warning("Model path does not exist: " + modelPath.toAbsolutePath());
@@ -45,7 +68,15 @@ public class FileTypePredictor {
         }
 
         var config = new Configuration();
-        int[][] inputBuffer = readFileToInputBuffer(inputFilePath.toFile(), config);
+
+        File inputFile = inputFilePath.toFile();
+        if (inputFile.length() == 0) {
+            return new Prediction("empty", 1.f);
+        } else if (inputFile.length() <= this.configuration.getMinSize()) {
+            return new Prediction("txt", 1.f);
+        }
+
+        int[][] inputBuffer = readFileToInputBuffer(inputFile, config);
         return getPrediction(inputBuffer);
     }
 
@@ -65,6 +96,12 @@ public class FileTypePredictor {
         }
     }
 
+    /**
+     * Predict the file type of the provided files.
+     *
+     * @param inputFiles the input files
+     * @return a map that consists of the path of the file and the corresponding predicted file type
+     */
     public Map<Path, Prediction> predictFileTypes(Collection<Path> inputFiles) {
         Map<Path, Prediction> predictions = new HashMap<>();
         for (var inputFile : inputFiles) {
@@ -76,6 +113,12 @@ public class FileTypePredictor {
         return predictions;
     }
 
+    /**
+     * Predict the file type of the files that are located in the provided folder, recursively.
+     *
+     * @param inputFolder the input folder
+     * @return a map that consists of the path of the file and the corresponding predicted file type
+     */
     public Map<Path, Prediction> predictFileTypesFromFolderRecursively(Path inputFolder) {
         checkFolder(inputFolder);
 
@@ -94,6 +137,12 @@ public class FileTypePredictor {
         }
     }
 
+    /**
+     * Predict the file type of the files that are located in the provided folder, non-recursively.
+     *
+     * @param inputFolder the input folder
+     * @return a map that consists of the path of the file and the corresponding predicted file type
+     */
     public Map<Path, Prediction> predictFileTypesFromFolder(Path inputFolder) {
         checkFolder(inputFolder);
 
@@ -119,7 +168,7 @@ public class FileTypePredictor {
      * @param probabilities The probabilities.
      * @return The index of the max.
      */
-    public static int predict(float[] probabilities) {
+    private static int predict(float[] probabilities) {
         float maxValue = Float.NEGATIVE_INFINITY;
         int index = 0;
         for (int i = 0; i < probabilities.length; i++) {
@@ -196,21 +245,5 @@ public class FileTypePredictor {
         int[][] returnArray = new int[1][bufferSize];
         returnArray[0] = inputArray;
         return returnArray;
-    }
-
-    private static void printOutputProbs(float[][] outputProbs) {
-        logger.info(Arrays.toString(outputProbs[0]));
-    }
-
-    private static void logModelInfo(OrtSession session) throws OrtException {
-        logger.info("Inputs:");
-        for (NodeInfo i : session.getInputInfo().values()) {
-            logger.info(i.toString());
-        }
-
-        logger.info("Outputs:");
-        for (NodeInfo i : session.getOutputInfo().values()) {
-            logger.info(i.toString());
-        }
     }
 }
