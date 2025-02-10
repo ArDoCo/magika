@@ -1,9 +1,5 @@
+/* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
-
-import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OrtEnvironment;
-import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtSession;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +10,11 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
 
 public class FileTypePredictor {
     private static final Logger logger = Logger.getLogger(FileTypePredictor.class.getName());

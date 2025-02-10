@@ -1,13 +1,14 @@
+/* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Configuration {
     private static final String defaultPath = "src/main/resources/config.json";

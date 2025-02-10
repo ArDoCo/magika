@@ -1,11 +1,12 @@
+/* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 public class FileTypePredictorTest {
     private static final Logger logger = Logger.getLogger(FileTypePredictorTest.class.getName());
