@@ -1,57 +1,39 @@
 /* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
 public class FileTypePredictor {
     private static final Logger logger = Logger.getLogger(FileTypePredictor.class.getName());
-    private static final Path defaultPath = Paths.get("src/main/resources/model.onnx");
+    private static final String defaultPath = "/model.onnx";
 
-    private final Path modelPath;
     private final Configuration configuration;
     private final List<String> labels;
-
-    /**
-     * Create a new predictor that uses the provided model path and configuration path.
-     *
-     * @param modelPath         the model path
-     * @param configurationPath the configuration path
-     */
-    public FileTypePredictor(Path modelPath, Path configurationPath) {
-        this.modelPath = modelPath;
-        configuration = new Configuration(configurationPath.toString());
-        labels = configuration.getTargetLabels();
-    }
-
-    /**
-     * Create a new predictor that uses the provided model path.
-     *
-     * @param modelPath the model path
-     */
-    public FileTypePredictor(Path modelPath) {
-        this.modelPath = modelPath;
-        configuration = new Configuration();
-        labels = configuration.getTargetLabels();
-    }
+    private final byte[] model;
 
     /**
      * Create a new predictor that uses the default model path and configuration path.
      */
     public FileTypePredictor() {
-        this(defaultPath);
+        configuration = new Configuration();
+        labels = configuration.getTargetLabels();
+        try {
+            model = this.getClass().getResourceAsStream(defaultPath).readAllBytes();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -61,11 +43,9 @@ public class FileTypePredictor {
      * @return the predicted file type
      */
     public Prediction predictFileType(Path inputFilePath) {
-        if (!Files.exists(modelPath)) {
-            logger.warning("Model path does not exist: " + modelPath.toAbsolutePath());
-        }
         if (!Files.exists(inputFilePath)) {
-            logger.warning("Input file path does not exist: " + modelPath.toAbsolutePath());
+            logger.warning("Input file path does not exist: " + inputFilePath.toAbsolutePath());
+            throw new IllegalArgumentException();
         }
 
         var config = new Configuration();
@@ -83,7 +63,7 @@ public class FileTypePredictor {
 
     private Prediction getPrediction(int[][] inputBuffer) {
         var env = OrtEnvironment.getEnvironment();
-        try (OrtSession.SessionOptions opts = new OrtSession.SessionOptions(); var session = env.createSession(modelPath.toAbsolutePath().toString(), opts)) {
+        try (OrtSession.SessionOptions opts = new OrtSession.SessionOptions(); var session = env.createSession(model, opts)) {
 
             String inputName = session.getInputNames().iterator().next();
             var tensor = OnnxTensor.createTensor(env, inputBuffer);
@@ -151,6 +131,20 @@ public class FileTypePredictor {
         return predictFileTypes(files);
     }
 
+    public Prediction predictBytes(byte[] inputBytes) {
+        Path tmpPath;
+        try {
+            File tmpFile = File.createTempFile("tmp_magika", ".tmp");
+            tmpFile.deleteOnExit();
+            tmpPath = tmpFile.toPath();
+            Files.write(tmpPath, inputBytes);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return predictFileType(tmpPath);
+    }
+
     private static Set<Path> findAllFilesRecursively(Path folder) {
         return findAllFilesRecursively(folder, 999);
     }
@@ -182,7 +176,7 @@ public class FileTypePredictor {
     }
 
     private static int[][] readFileToInputBuffer(File file, Configuration config) {
-        long fileLength = file.length();
+        int fileLength = (int) file.length();
 
         int beginningSize = config.getBeginningSize();
         int midSize = config.getMidSize();
@@ -190,60 +184,44 @@ public class FileTypePredictor {
         var bufferSize = beginningSize + midSize + endSize;
         byte paddingToken = (byte) config.getPaddingToken();
 
-        byte[] beginningArray = new byte[beginningSize];
-        Arrays.fill(beginningArray, paddingToken);
-
-        byte[] midArray = new byte[midSize];
-        Arrays.fill(midArray, paddingToken);
-
-        int endByteArraySize = Math.min((int) fileLength, endSize);
-        byte[] endArray = new byte[endByteArraySize];
-        Arrays.fill(endArray, paddingToken);
+        byte[] buffer = new byte[bufferSize];
+        Arrays.fill(buffer, paddingToken);
 
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
 
-            raf.read(beginningArray);
+            // write beginning bytes
+            raf.read(buffer, 0, beginningSize);
 
-            int offset = 0;
+            // write middle bytes
+            int offset;
             if (midSize > 0) {
+                // calculate the offset for the middle part that is equally left and right of the middle
                 int halfInputSize = Math.round((float) fileLength / 2);
                 offset = Math.max(0, halfInputSize - (midSize / 2));
                 raf.seek(offset);
-                raf.read(midArray);
+
+                raf.read(buffer, beginningSize, midSize);
             }
 
-            offset = (int) Math.max(0, fileLength - endSize);
+            // write end bytes
+            offset = Math.max(0, fileLength - endSize);
             raf.seek(offset);
-            raf.read(endArray);
-            if (endSize > endByteArraySize) {
-                byte[] tmp = new byte[endSize];
-                Arrays.fill(tmp, paddingToken);
-                for (int i = 1; i <= endArray.length; i++) {
-                    int indexEnd = endArray.length - i;
-                    int indexTmp = tmp.length - i;
-                    tmp[indexTmp] = endArray[indexEnd];
-                }
-                endArray = tmp;
-            }
+
+            // End chunk. It should end with the file, and padding at the beginning.
+            // take care if file is smaller than endSize
+            int bufferEndStart = beginningSize + midSize + Math.max(0, endSize - fileLength);
+            int endBufferContentSize = buffer.length - bufferEndStart;
+            raf.read(buffer, bufferEndStart, endBufferContentSize);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        int[] inputArray = new int[beginningSize + midSize + endSize];
-        int maxSize = Math.max(Math.max(beginningSize, midSize), endSize);
-        for (int i = 0; i < maxSize; i++) {
-            if (i < beginningSize) {
-                inputArray[i] = beginningArray[i];
-            }
-            if (i < midSize) {
-                inputArray[i + beginningSize] = midArray[i];
-            }
-            if (i < endSize) {
-                inputArray[i + beginningSize + midSize] = endArray[i];
-            }
+        int[] inputArray = new int[buffer.length];
+        for (int i = 0; i < inputArray.length; i++) {
+            inputArray[i] = Byte.toUnsignedInt(buffer[i]);
         }
 
-        int[][] returnArray = new int[1][bufferSize];
+        int[][] returnArray = new int[1][];
         returnArray[0] = inputArray;
         return returnArray;
     }

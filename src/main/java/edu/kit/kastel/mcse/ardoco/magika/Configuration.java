@@ -1,51 +1,28 @@
 /* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.io.IOException;
+import java.util.List;
+
 public class Configuration {
-    private static final String defaultPath = "src/main/resources/config.json";
-
-    private final String path;
+    private static final String defaultPath = "/config.json";
     private JsonNode root = null;
-
-    /**
-     * Create a configuration that reads in from the provided path.
-     *
-     * @param path the path of the configuration file
-     */
-    public Configuration(Path path) {
-        this.path = path.toAbsolutePath().toString();
-    }
-
-    /**
-     * Create a configuration that reads in from the provided path.
-     *
-     * @param path the path of the configuration file
-     */
-    public Configuration(String path) {
-        this.path = path;
-    }
 
     /**
      * Create a configuration that reads in from the default configuration file.
      */
     public Configuration() {
-        this.path = defaultPath;
     }
 
     private JsonNode get(String fieldName) {
         if (root == null) {
             ObjectMapper objectMapper = new ObjectMapper();
             try {
-                this.root = objectMapper.readTree(new File(path));
+                this.root = objectMapper.readTree(this.getClass().getResourceAsStream(defaultPath));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

@@ -1,12 +1,12 @@
 /* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
-
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 public class FileTypePredictorTest {
     private static final Logger logger = Logger.getLogger(FileTypePredictorTest.class.getName());
@@ -56,5 +56,59 @@ public class FileTypePredictorTest {
         for (var prediction : resultMap.entrySet()) {
             Assertions.assertEquals(prediction.getValue().label(), java);
         }
+    }
+
+    @Test
+    void predictBytes() {
+        String content = """
+                
+                .idea
+                
+                # User-specific stuff
+                .idea/**/workspace.xml
+                .idea/**/tasks.xml
+                .idea/**/usage.statistics.xml
+                .idea/**/dictionaries
+                .idea/**/shelf
+                
+                # AWS User-specific
+                .idea/**/aws.xml
+                
+                # Generated files
+                .idea/**/contentModel.xml
+                
+                # Sensitive or high-churn files
+                .idea/**/dataSources/
+                .idea/**/dataSources.ids
+                .idea/**/dataSources.local.xml
+                .idea/**/sqlDataSources.xml
+                .idea/**/dynamic.xml
+                .idea/**/uiDesigner.xml
+                .idea/**/dbnavigator.xml
+                
+                # Gradle
+                .idea/**/gradle.xml
+                .idea/**/libraries
+                
+                # Gradle and Maven with auto-import
+                # When using Gradle or Maven with auto-import, you should exclude module files,
+                # since they will be recreated, and may cause churn.  Uncomment if using
+                # auto-import.
+                # .idea/artifacts
+                # .idea/compiler.xml
+                # .idea/jarRepositories.xml
+                # .idea/modules.xml
+                # .idea/*.iml
+                # .idea/modules
+                # *.iml
+                # *.ipr
+                
+                # CMake
+                cmake-build-*/
+                
+                """;
+        byte[] input = content.getBytes();
+        var result = predictor.predictBytes(input);
+        Assertions.assertEquals("ignorefile", result.label());
     }
 }
