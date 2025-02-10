@@ -1,4 +1,4 @@
-package edu.kit.kastel.mcse.ardoco;
+package edu.kit.kastel.mcse.ardoco.magika;
 
 import ai.onnxruntime.*;
 

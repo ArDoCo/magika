@@ -1,4 +1,4 @@
-package edu.kit.kastel.mcse.ardoco;
+package edu.kit.kastel.mcse.ardoco.magika;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -45,7 +45,8 @@ public class Configuration {
 
     public List<String> getTargetLabels() {
         var field = get("target_labels_space");
-        TypeReference<List<String>> typeReferenceList = new TypeReference<List<String>>() {};
+        TypeReference<List<String>> typeReferenceList = new TypeReference<List<String>>() {
+        };
         return new ObjectMapper().convertValue(field, typeReferenceList);
     }
 
