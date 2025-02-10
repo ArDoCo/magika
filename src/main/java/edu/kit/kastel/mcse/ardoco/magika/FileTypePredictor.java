@@ -1,11 +1,6 @@
 /* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
 
-import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OrtEnvironment;
-import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtSession;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -17,13 +12,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
+
 public class FileTypePredictor {
     private static final Logger logger = Logger.getLogger(FileTypePredictor.class.getName());
-    private static final String defaultPath = "/model.onnx";
+    private static final String defaultPath = "/magika/model.onnx";
 
     private final Configuration configuration;
     private final List<String> labels;
@@ -35,8 +36,9 @@ public class FileTypePredictor {
     public FileTypePredictor() {
         configuration = new Configuration();
         labels = configuration.getTargetLabels();
-        try {
-            model = this.getClass().getResourceAsStream(defaultPath).readAllBytes();
+        try (var stream = this.getClass().getResourceAsStream(defaultPath)) {
+            Objects.requireNonNull(stream);
+            model = stream.readAllBytes();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -156,8 +158,8 @@ public class FileTypePredictor {
     }
 
     private static Set<Path> findAllFilesRecursively(Path folder, int depth) {
-        try {
-            return Files.find(folder, depth, (p, bfa) -> bfa.isRegularFile()).collect(Collectors.toSet());
+        try (var files = Files.find(folder, depth, (p, bfa) -> bfa.isRegularFile())) {
+            return files.collect(Collectors.toSet());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
