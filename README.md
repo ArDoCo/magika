@@ -4,7 +4,9 @@ This is a Java library that includes [Google's magika](https://github.com/google
 
 According to the README at [google/magika](https://github.com/google/magika):
 > Magika is a novel AI powered file type detection tool that relies on the recent advance of deep learning to provide accurate detection. Under the hood, Magika employs a custom, highly optimized Keras model that only weighs about a few MBs, and enables precise file identification within milliseconds, even when running on a single CPU.
+
 > In an evaluation with over 1M files and over 100 content types (covering both binary and textual file formats), Magika achieves 99%+ precision and recall. Magika is used at scale to help improve Google users’ safety by routing Gmail, Drive, and Safe Browsing files to the proper security and content policy scanners. Read more in our [research paper](https://arxiv.org/abs/2409.13768!
+
 > The Magika paper was accepted at IEEE/ACM International Conference on Software Engineering (ICSE) 2025!
 
 See also [their website](https://google.github.io/magika/).
