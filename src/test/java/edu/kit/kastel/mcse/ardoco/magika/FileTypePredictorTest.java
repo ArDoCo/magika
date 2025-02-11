@@ -108,4 +108,12 @@ public class FileTypePredictorTest {
         var result = predictor.predictBytes(input);
         Assertions.assertEquals("ignorefile", result.label());
     }
+
+    @Test
+    void predictBytesShort() {
+        String content = "# This is markdown \n Does this work for [ArDoCo](https://ardoco.de)?";
+        byte[] input = content.getBytes();
+        var result = predictor.predictBytes(input);
+        Assertions.assertEquals("markdown", result.label());
+    }
 }

@@ -190,15 +190,16 @@ public class FileTypePredictor {
         int midSize = config.getMidSize();
         int endSize = config.getEndSize();
         var bufferSize = beginningSize + midSize + endSize;
-        byte paddingToken = (byte) config.getPaddingToken();
+        int paddingToken = config.getPaddingToken();
 
-        byte[] buffer = new byte[bufferSize];
-        Arrays.fill(buffer, paddingToken);
+        byte[] beginningBuffer = new byte[Math.min(fileLength, beginningSize)];
+        byte[] midBuffer = new byte[Math.min(fileLength, midSize)];
+        byte[] endBuffer = new byte[Math.min(fileLength, endSize)];
 
         try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
 
             // write beginning bytes
-            raf.read(buffer, 0, beginningSize);
+            raf.read(beginningBuffer);
 
             // write middle bytes
             int offset;
@@ -208,25 +209,37 @@ public class FileTypePredictor {
                 offset = Math.max(0, halfInputSize - (midSize / 2));
                 raf.seek(offset);
 
-                raf.read(buffer, beginningSize, midSize);
+                raf.read(midBuffer);
             }
 
             // write end bytes
             offset = Math.max(0, fileLength - endSize);
             raf.seek(offset);
 
-            // End chunk. It should end with the file, and padding at the beginning.
-            // take care if file is smaller than endSize
-            int bufferEndStart = beginningSize + midSize + Math.max(0, endSize - fileLength);
-            int endBufferContentSize = buffer.length - bufferEndStart;
-            raf.read(buffer, bufferEndStart, endBufferContentSize);
+            raf.read(endBuffer);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        int[] inputArray = new int[buffer.length];
-        for (int i = 0; i < inputArray.length; i++) {
-            inputArray[i] = Byte.toUnsignedInt(buffer[i]);
+        int[] inputArray = new int[bufferSize];
+        Arrays.fill(inputArray, paddingToken);
+        // Beginning chunk
+        for (int i = 0; i < beginningBuffer.length; i++) {
+            inputArray[i] = Byte.toUnsignedInt(beginningBuffer[i]);
+        }
+
+        // Mid chunk
+        // note: it is currently not known how/where the padding should be handled
+        for (int i = 0; i < midBuffer.length; i++) {
+            inputArray[beginningSize + i] = Byte.toUnsignedInt(midBuffer[i]);
+        }
+
+        // End chunk. It should end with the file, and padding at the beginning.
+        // take care if file is smaller than endSize
+        for (int i = 0; i < endBuffer.length; i++) {
+            int inputArrayIndex = inputArray.length - 1 - i;
+            int endArrayIndex = endBuffer.length - 1 - i;
+            inputArray[inputArrayIndex] = Byte.toUnsignedInt(endBuffer[endArrayIndex]);
         }
 
         int[][] returnArray = new int[1][];
