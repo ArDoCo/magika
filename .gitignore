@@ -356,3 +356,5 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+.flattened-pom.xml

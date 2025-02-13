@@ -13,7 +13,20 @@ See also [their website](https://google.github.io/magika/).
 
 ## Getting Started
 
-Coming soon!
+This library is meant to be used as a dependency in your Java project. It is available on Maven Central.
+We provide a simple API to the ONNX model for classification (v0.6.0).
+
+If you need a CLI, we suggest you use the original [google/magika](https://github.com/google/magika) project.
+
+### Maven
+
+```xml
+<dependency>
+<groupId>edu.kit.kastel.mcse.ardoco</groupId>
+<artifactId>magika</artifactId>
+<version>0.6.0</version>
+</dependency>
+```
 
 
 ## Known Limitations & Contributing
