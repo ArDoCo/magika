@@ -22,7 +22,7 @@ If you need a CLI, we suggest you use the original [google/magika](https://githu
 
 ```xml
 <dependency>
-    <groupId>edu.kit.kastel.mcse.ardoco</groupId>
+    <groupId>io.github.ardoco</groupId>
     <artifactId>magika</artifactId>
     <version>0.6.0</version>
 </dependency>
