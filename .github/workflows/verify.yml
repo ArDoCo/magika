@@ -1,0 +1,36 @@
+name: Maven Verify
+
+on:
+  push: # Ignore releases and main dev branch
+    tags-ignore:
+      - 'v*'
+    branches:
+      - '**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "Build"
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: joshlong/java-version-export-github-action@v28
+      id: jve
+
+    - name: Java with Cache
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ steps.jve.outputs.java_major_version }}
+        distribution: 'temurin'
+        cache: 'maven'
+
+    - name: Maven Verify
+      shell: bash
+      run: mvn -U -B verify
