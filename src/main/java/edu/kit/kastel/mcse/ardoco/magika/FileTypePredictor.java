@@ -1,11 +1,6 @@
 /* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
 
-import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OrtEnvironment;
-import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtSession;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -21,6 +16,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
 
 public class FileTypePredictor {
     private static final Logger logger = Logger.getLogger(FileTypePredictor.class.getName());
@@ -71,20 +71,19 @@ public class FileTypePredictor {
 
     private Prediction getPrediction(int[][] inputBuffer) {
         var env = OrtEnvironment.getEnvironment();
-        try (OrtSession.SessionOptions opts = new OrtSession.SessionOptions(); var session = env.createSession(model, opts)) {
-
-            String inputName = session.getInputNames().iterator().next();
-            var tensor = OnnxTensor.createTensor(env, inputBuffer);
-            var result = session.run(Collections.singletonMap(inputName, tensor));
-            float[][] outputProbabilities = (float[][]) result.get(0).getValue();
-            tensor.close();
-            result.close();
-
-            int labelIndex = predict(outputProbabilities[0]);
-
-            return new Prediction(labels.get(labelIndex), outputProbabilities[0][labelIndex]);
+        try (OrtSession.SessionOptions opts = new OrtSession.SessionOptions()) {
+            try (var session = env.createSession(model, opts)) {
+                String inputName = session.getInputNames().iterator().next();
+                try (var tensor = OnnxTensor.createTensor(env, inputBuffer)) {
+                    try (var result = session.run(Collections.singletonMap(inputName, tensor))) {
+                        float[][] outputProbabilities = (float[][]) result.get(0).getValue();
+                        int labelIndex = predict(outputProbabilities[0]);
+                        return new Prediction(labels.get(labelIndex), outputProbabilities[0][labelIndex]);
+                    }
+                }
+            }
         } catch (OrtException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
