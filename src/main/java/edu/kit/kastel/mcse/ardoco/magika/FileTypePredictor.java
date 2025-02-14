@@ -5,6 +5,8 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,14 +23,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OrtEnvironment;
-import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtSession;
 
 public class FileTypePredictor {
     private static final Logger logger = LoggerFactory.getLogger(FileTypePredictor.class.getName());
@@ -63,7 +57,7 @@ public class FileTypePredictor {
         try (var session = openSession(env)) {
             return predictFileType(inputFilePath, env, session);
         } catch (OrtException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
