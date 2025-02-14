@@ -1,6 +1,11 @@
 /* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
 
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -54,6 +59,15 @@ public class FileTypePredictor {
      * @return the predicted file type
      */
     public Prediction predictFileType(Path inputFilePath) {
+        var env = OrtEnvironment.getEnvironment();
+        try (var session = openSession(env)) {
+            return predictFileType(inputFilePath, env, session);
+        } catch (OrtException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Prediction predictFileType(Path inputFilePath, OrtEnvironment environment, OrtSession session) {
         if (!Files.exists(inputFilePath)) {
             logger.warn("Input file path does not exist: {}", inputFilePath.toAbsolutePath());
             throw new IllegalArgumentException();
@@ -69,25 +83,25 @@ public class FileTypePredictor {
         }
 
         int[][] inputBuffer = readFileToInputBuffer(inputFile, config);
-        return getPrediction(inputBuffer);
+        return getPrediction(inputBuffer, environment, session);
     }
 
-    private Prediction getPrediction(int[][] inputBuffer) {
-        var env = OrtEnvironment.getEnvironment();
-        try (OrtSession.SessionOptions opts = new OrtSession.SessionOptions()) {
-            try (var session = env.createSession(model, opts)) {
-                String inputName = session.getInputNames().iterator().next();
-                try (var tensor = OnnxTensor.createTensor(env, inputBuffer)) {
-                    try (var result = session.run(Collections.singletonMap(inputName, tensor))) {
-                        float[][] outputProbabilities = (float[][]) result.get(0).getValue();
-                        int labelIndex = predict(outputProbabilities[0]);
-                        return new Prediction(labels.get(labelIndex), outputProbabilities[0][labelIndex]);
-                    }
-                }
+    private Prediction getPrediction(int[][] inputBuffer, OrtEnvironment environment, OrtSession session) {
+        String inputName = session.getInputNames().iterator().next();
+        try (var tensor = OnnxTensor.createTensor(environment, inputBuffer)) {
+            try (var result = session.run(Collections.singletonMap(inputName, tensor))) {
+                float[][] outputProbabilities = (float[][]) result.get(0).getValue();
+                int labelIndex = predict(outputProbabilities[0]);
+                return new Prediction(labels.get(labelIndex), outputProbabilities[0][labelIndex]);
             }
         } catch (OrtException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private OrtSession openSession(OrtEnvironment env) throws OrtException {
+        OrtSession.SessionOptions opts = new OrtSession.SessionOptions();
+        return env.createSession(model, opts);
     }
 
     /**
@@ -97,14 +111,19 @@ public class FileTypePredictor {
      * @return a map that consists of the path of the file and the corresponding predicted file type
      */
     public Map<Path, Prediction> predictFileTypes(Collection<Path> inputFiles) {
-        Map<Path, Prediction> predictions = new HashMap<>();
-        for (var inputFile : inputFiles) {
-            if (!Files.isDirectory(inputFile)) {
-                var prediction = predictFileType(inputFile);
-                predictions.put(inputFile, prediction);
+        var env = OrtEnvironment.getEnvironment();
+        try (var session = openSession(env)) {
+            Map<Path, Prediction> predictions = new HashMap<>();
+            for (var inputFile : inputFiles) {
+                if (!Files.isDirectory(inputFile)) {
+                    var prediction = predictFileType(inputFile, env, session);
+                    predictions.put(inputFile, prediction);
+                }
             }
+            return predictions;
+        } catch (OrtException e) {
+            throw new IllegalStateException(e);
         }
-        return predictions;
     }
 
     /**
