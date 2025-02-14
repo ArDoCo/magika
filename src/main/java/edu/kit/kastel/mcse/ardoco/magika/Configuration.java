@@ -9,22 +9,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Configuration {
-    private static final String defaultPath = "/magika/config.json";
+    private static final String MAGIKA_CONFIG_JSON = "/magika/config.json";
     private JsonNode root = null;
-
-    /**
-     * Create a configuration that reads in from the default configuration file.
-     */
-    public Configuration() {
-    }
 
     private JsonNode get(String fieldName) {
         if (root == null) {
             ObjectMapper objectMapper = new ObjectMapper();
             try {
-                this.root = objectMapper.readTree(this.getClass().getResourceAsStream(defaultPath));
+                this.root = objectMapper.readTree(this.getClass().getResourceAsStream(MAGIKA_CONFIG_JSON));
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException(e);
             }
         }
         return root.get(fieldName);
@@ -41,7 +35,7 @@ public class Configuration {
      */
     public List<String> getTargetLabels() {
         var field = get("target_labels_space");
-        TypeReference<List<String>> typeReferenceList = new TypeReference<List<String>>() {
+        TypeReference<List<String>> typeReferenceList = new TypeReference<>() {
         };
         return new ObjectMapper().convertValue(field, typeReferenceList);
     }

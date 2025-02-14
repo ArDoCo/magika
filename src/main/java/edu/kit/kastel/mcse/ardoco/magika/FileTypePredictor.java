@@ -4,6 +4,7 @@ package edu.kit.kastel.mcse.ardoco.magika;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -14,8 +15,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
@@ -23,8 +26,8 @@ import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
 
 public class FileTypePredictor {
-    private static final Logger logger = Logger.getLogger(FileTypePredictor.class.getName());
-    private static final String defaultPath = "/magika/model.onnx";
+    private static final Logger logger = LoggerFactory.getLogger(FileTypePredictor.class.getName());
+    private static final String MAGIKA_MODEL = "/magika/model.onnx";
 
     private final Configuration configuration;
     private final List<String> labels;
@@ -36,11 +39,11 @@ public class FileTypePredictor {
     public FileTypePredictor() {
         configuration = new Configuration();
         labels = configuration.getTargetLabels();
-        try (var stream = this.getClass().getResourceAsStream(defaultPath)) {
+        try (var stream = this.getClass().getResourceAsStream(MAGIKA_MODEL)) {
             Objects.requireNonNull(stream);
             model = stream.readAllBytes();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -52,7 +55,7 @@ public class FileTypePredictor {
      */
     public Prediction predictFileType(Path inputFilePath) {
         if (!Files.exists(inputFilePath)) {
-            logger.warning("Input file path does not exist: " + inputFilePath.toAbsolutePath());
+            logger.warn("Input file path does not exist: {}", inputFilePath.toAbsolutePath());
             throw new IllegalArgumentException();
         }
 
@@ -119,11 +122,11 @@ public class FileTypePredictor {
 
     private static void checkFolder(Path inputFolder) {
         if (!Files.exists(inputFolder)) {
-            logger.warning("Provided path does not exist: " + inputFolder.toAbsolutePath());
+            logger.warn("Provided path does not exist: {}", inputFolder.toAbsolutePath());
             throw new IllegalArgumentException();
         }
         if (!Files.isDirectory(inputFolder)) {
-            logger.warning("Provided path is not a folder: " + inputFolder.toAbsolutePath());
+            logger.warn("Provided path is not a folder: {}", inputFolder.toAbsolutePath());
             throw new IllegalArgumentException();
         }
     }
@@ -149,7 +152,7 @@ public class FileTypePredictor {
             tmpPath = tmpFile.toPath();
             Files.write(tmpPath, inputBytes);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
 
         return predictFileType(tmpPath);
@@ -163,7 +166,7 @@ public class FileTypePredictor {
         try (var files = Files.find(folder, depth, (p, bfa) -> bfa.isRegularFile())) {
             return files.collect(Collectors.toSet());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -220,7 +223,7 @@ public class FileTypePredictor {
 
             raf.read(endBuffer);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
 
         int[] inputArray = new int[bufferSize];
