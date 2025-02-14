@@ -24,7 +24,7 @@ If you need a CLI, we suggest you use the original [google/magika](https://githu
 <dependency>
     <groupId>io.github.ardoco</groupId>
     <artifactId>magika</artifactId>
-    <version>0.6.0</version>
+    <version>0.6.1</version>
 </dependency>
 ```
 
