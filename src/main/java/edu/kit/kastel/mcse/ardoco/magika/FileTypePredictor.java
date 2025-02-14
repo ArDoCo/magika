@@ -1,6 +1,11 @@
 /* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
 
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OrtEnvironment;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -16,11 +21,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-
-import ai.onnxruntime.OnnxTensor;
-import ai.onnxruntime.OrtEnvironment;
-import ai.onnxruntime.OrtException;
-import ai.onnxruntime.OrtSession;
 
 public class FileTypePredictor {
     private static final Logger logger = Logger.getLogger(FileTypePredictor.class.getName());
@@ -77,6 +77,9 @@ public class FileTypePredictor {
             var tensor = OnnxTensor.createTensor(env, inputBuffer);
             var result = session.run(Collections.singletonMap(inputName, tensor));
             float[][] outputProbabilities = (float[][]) result.get(0).getValue();
+            tensor.close();
+            result.close();
+
             int labelIndex = predict(outputProbabilities[0]);
 
             return new Prediction(labels.get(labelIndex), outputProbabilities[0][labelIndex]);

@@ -1,11 +1,11 @@
 /* Licensed under Apache 2.0 2025. */
 package edu.kit.kastel.mcse.ardoco.magika;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class FileTypePredictorTest {
     private final FileTypePredictor predictor = new FileTypePredictor();
@@ -58,22 +58,22 @@ public class FileTypePredictorTest {
     @Test
     void predictBytes() {
         String content = """
-
+                
                 .idea
-
+                
                 # User-specific stuff
                 .idea/**/workspace.xml
                 .idea/**/tasks.xml
                 .idea/**/usage.statistics.xml
                 .idea/**/dictionaries
                 .idea/**/shelf
-
+                
                 # AWS User-specific
                 .idea/**/aws.xml
-
+                
                 # Generated files
                 .idea/**/contentModel.xml
-
+                
                 # Sensitive or high-churn files
                 .idea/**/dataSources/
                 .idea/**/dataSources.ids
@@ -82,11 +82,11 @@ public class FileTypePredictorTest {
                 .idea/**/dynamic.xml
                 .idea/**/uiDesigner.xml
                 .idea/**/dbnavigator.xml
-
+                
                 # Gradle
                 .idea/**/gradle.xml
                 .idea/**/libraries
-
+                
                 # Gradle and Maven with auto-import
                 # When using Gradle or Maven with auto-import, you should exclude module files,
                 # since they will be recreated, and may cause churn.  Uncomment if using
@@ -99,10 +99,10 @@ public class FileTypePredictorTest {
                 # .idea/modules
                 # *.iml
                 # *.ipr
-
+                
                 # CMake
                 cmake-build-*/
-
+                
                 """;
         byte[] input = content.getBytes();
         var result = predictor.predictBytes(input);
